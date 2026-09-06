@@ -1,0 +1,662 @@
+---
+title: "Session 8"
+author: "Trevor Walter Ogano"
+format: html
+editor: visual
+---l
+---
+
+```{r}
+    
+library(dplyr)   ## For Data Manipulation
+library(ggplot2)    ## For data Visualization
+library(tidyverse)  ## For data visualization, wrangling and manipulation
+library(readxl)     ## For reading Excel File
+library(skimr)
+library(psych)
+library(naniar)
+library(DataExplorer)
+library(DescTools)
+library(scales)
+```
+
+**Data Importation**
+
+```{r}
+data = read.csv("Socio-economic-Data.csv")
+head(data)
+```
+
+**Structure**
+
+```{r}
+str(data)
+```
+
+**Dimension**
+
+```{r}
+dim(data)
+```
+
+**column names**
+
+```{r}
+names(data)
+```
+
+```{r}
+skim(data)
+```
+
+```{r}
+describe(data)
+```
+
+```{r}
+create_report(data, output_file = "report2.html")
+browseURL("report.html")
+```
+
+**Data Summary**
+
+```{r}
+summary(data)
+```
+
+**Data Cleaning and Processing**
+
+**Missing values visualization**
+
+Checking Presence
+
+```{r}
+Missing = data.frame(Missing = colSums(is.na(data)))
+Missing
+```
+
+**Percentage of Missing values**
+
+```{r}
+Missing_pct = data.frame(Missing = round(colSums(is.na(data))/nrow(data)*100, 3))
+Missing_pct
+```
+
+**Sum of Missing values in the dataset**
+
+```{r}
+sum(is.na(data))
+```
+
+**Intersection plot of missing patterns across vars**
+
+```{r}
+gg_miss_upset(data)
+```
+
+**Missing Values Visualization**
+
+**Missing Value Patterns**
+
+```{r}
+vis_miss(data)
+ggtittle("Missing Value Patterns")
+```
+
+```{r}
+Row_with_missing = data[!complete.cases(data),]
+Row_with_missing
+```
+
+**Dimension of Missing Vars**
+
+```{r}
+dim(Row_with_missing)
+```
+
+```{r}
+gg_miss_var(data)
+```
+
+**Categorized profile report of column missingness**
+
+```{r}
+plot_missing(data)
+```
+
+**Missing values per variable**
+
+```{r}
+colSums(is.na(data))
+```
+
+```{r}
+data %>%
+  summarise(across(everything(), ~ sum(is.na(.)))) %>%
+  glimpse()
+```
+
+**Imputation using mean and mode**
+
+**Mode**
+
+```{r}
+categorical = c("Department", "Education_Level", "marital_status", "Gender", "Job_title")
+frq(data[,categorical])
+```
+
+**Mean**
+
+```{r}
+{r}
+data$Salary[is.na(data$Salary)] <- mean(data$Salary, na.rm = TRUE)
+```
+
+```{r}
+data$Age[is.na(data$Age)] <- mean(data$Age, na.rm = TRUE)
+```
+
+```{r}
+data$Commute_Distance[is.na(data$Commute_Distance)] <- mean(data$Commute_Distance, na.rm = TRUE)
+```
+
+**Identification and removal of duplicate rows**
+
+Total count of duplicated rows
+
+```{r}
+sum(duplicated(data))
+```
+
+view
+
+```{r}
+data[duplicated(data),]
+```
+
+**ID duplicates by Employee_ID**
+
+```{r}
+data[duplicated(data$Employee_ID),]
+```
+
+**Remove duplicated rows**
+
+```{r}
+data_clean = unique(data)
+```
+
+**Report how many were removed.**
+
+```{r}
+cat("Number of duplicate rows removed:", removed_count, "\n")
+```
+
+**Identify outliers in Age, Salary, and Commute_Distance using boxplots**
+
+```{r}
+ggplot(data, aes(y = Age)) +
+  geom_boxplot() +
+  labs(title = "Boxplot to Identify Outliers in Age Variable", y = "Values")
+```
+
+```{r}
+ggplot(data, aes(y = Salary)) +
+  geom_boxplot() +
+  labs(title = "Boxplot to Identify Outliers in Salary Variable", y = "Values")
+```
+
+```{r}
+ggplot(data, aes(y = Commute_Distance)) +
+  geom_boxplot() +
+  labs(title = "Boxplot to Identify Outliers in Commute_Distance Variable", y = "Values")
+```
+
+```{r}
+boxplot(data$Age, main = "Boxplot to Identify Outliers", ylab = "Values")
+```
+
+**Winsorization**
+
+```{r}
+###df_cleaned = df %>%
+  mutate(
+    Salary = Winsorize(Salary, val = quantile(Salary, probs = c(0.25, 0.75), na.rm = TRUE)),
+       Age = Winsorize(Age, val = quantile(Age, probs = c(0.25, 0.75), na.rm = TRUE)),
+    Commute_Distance = Winsorize(Commute_Distance, val = Quantile(Commute_Distance, probs = c(0.25, 0.75), na.rm = TRUE))
+  )
+```
+
+```{r}
+data_cleaned = data%>%
+  mutate(
+    across(c(Salary, Age, Commute_Distance), ~Winsorize(., val = quantile(., probs = c(0.25, 0.75), na.rm = TRUE)))
+  )
+```
+
+```{r}
+View(data_cleaned)
+```
+
+```{r}
+head(data_cleaned)
+```
+
+```{r}
+dim(data_cleaned)
+```
+
+```{r}
+summary(data)
+```
+
+```{r}
+summary(data_cleaned)
+```
+
+**Find and fix illogical errors**
+
+**Errors in Age**
+
+```{r}
+illogical_ages = data %>%
+  filter(Age < 0 | Age > 100)
+```
+
+**Errors in Years_of_Experience**
+
+```{r}
+illogical_Years_of_Experience = data %>%
+  filter(Years_of_Experience < 0 | Years_of_Experience > 90 )
+```
+
+```{r}
+write.csv(data_cleaned, "data_cleaned.csv", row.names = FALSE)
+```
+
+```{r}
+saveRDS(data_cleaned, "data_cleaned.rds")
+```
+
+**Data Manipulation and Feature Engineering**
+
+```{r}
+read.csv("data_cleaned.csv")
+head(data_cleaned, 100)
+```
+
+```{r}
+Sociodata_cleaned = data_cleaned %>%
+  mutate(across(where(is.factor), as.character)) %>%
+  mutate(across(where(is.character), ~ replace_na(.x, "Unknown"))) %>%
+  mutate(across(where(is.numeric), ~ replace_na(.x, 0)))
+```
+
+```{r}
+head(Sociodata_cleaned, 100)
+```
+
+```{r}
+write.csv(Sociodata_cleaned, "Sociodata_cleaned.csv", row.names = FALSE)
+```
+
+```{r}
+saveRDS(Sociodata_cleaned, "Sociodata_cleaned.rds")
+```
+
+**Transform the cleaned data to create new, meaningful features for analysis.**
+
+**Create a Total_Compensation variable (Salary + Bonus).**
+
+```{r}
+names(Sociodata_cleaned)
+```
+
+```{r}
+Sociodata_cleaned$Total_Compensation = Sociodata_cleaned$Salary + Sociodata_cleaned$Bonus
+```
+
+**Calculate employee Tenure_Years based on the Date_Hired and the current date**.
+
+```{r}
+Sociodata_cleaned$Date_Hired = as.Date(Sociodata_cleaned$Date_Hired, format = "%m/%d/%Y")
+
+```
+
+```{r}
+Sociodata_cleaned$tenure_years = as.numeric(Sys.Date() - Sociodata_cleaned$Date_Hired) / 365.25
+```
+
+```{r}
+print(Sociodata_cleanedd)
+```
+
+Categorize Age into three distinct groups (e.g., “Early Career”, “Mid Career”, “Late Career”) using the cut() function.
+
+```{r}
+Sociodata_cleaned$Age_Group = cut(
+Sociodata_cleaned$Age,
+breaks = c(18, 35, 55, Inf),
+labels = c("Early Career", "Mid Career", "Late Career"),
+right = FALSE)
+  
+print(Sociodata_cleaned)  
+```
+
+```{r}
+View(Sociodata_cleaned)
+```
+
+**Exploratory Data Analysis (EDA) and Visualization**
+
+**Create high-quality, publication-ready visualizations using ggplot2. You must include at least four distinct types of plots:**
+
+**• A distribution plot (histogram/density) of Salary.**
+
+```{r}
+ggplot(data = Sociodata_cleaned, aes(x = Salary)) +
+  geom_histogram(binwidth = 10000, fill = "skyblue", color = "black", alpha = 0.8) +
+  labs(
+  tittle = "Distribution of Salaries",
+  x = "Salary ($)",
+  y = "count of Employees"
+  )+
+    theme_minimal()
+```
+
+```{r}
+#ggplot(Sociodata_cleaned, aes(x = Salary)) +
+  geom_histogram(aes(y = after_stat(density)),
+                 bins = 30,
+                 fill = "#2b5c8f",
+                 color = "blue",
+                 alpha = 0.7) +
+  geom_density(colour = "#1d3c58",linewidth = 1) +
+  scale_x_continuous(labels = label_dollar(scale + 1/1000, suffix = "k")) +
+  scale_y_continuous(labels = label_percent()) +
+  theme_minimal(base_size = 12, base_family = "sans") +
+  labs(
+    tittle ="Distribution of Salary",
+    subtittle = "Histogram with ovderlaid kernel density estimate",
+    x = "Annual Salary",
+    y = "Density",
+    caption = "Source : Internal Dataset"
+   ) +
+  theme(
+    plot.title = element_text(face = "bold", size = 14, margin = margin(b =5)),
+    plot.subtitle = element_text(color = "grey30", size = 10),
+    panel.grid.minor = element_blank(),
+    plot.caption = element_text(color = "grey50", size = 8, hjust = 1)
+  )
+                 
+```
+
+**• A comparative boxplot of Salary grouped by Education_Level.**
+
+```{r}
+ggplot(Sociodata_cleaned, aes(x = Education_Level, y = Salary, fill = Education_Level)) +
+  geom_boxplot() +
+  labs(
+    title = "Salary Distribution by Education_level",
+    x = "Education_Level",
+    y = "Salary ($)"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+**• A scatter plot showing the relationship between Years_of_Experience and Salary, colored by Gender.**
+
+```{r}
+ggplot(Sociodata_cleaned, aes(
+  x = Years_of_Experience,
+  y = Salary,
+  colour = Gender
+)) +
+  geom_point(size = 2.5, alpha = 0.7) +
+  geom_smooth(method = "lm")
+  geom_smooth(method = "lm", se = FALSE, linewidth = 1.1) +
+  labs(
+    title = "Salary vs. Years of Experience",
+    subtitle = "Trend lines shown for each gender group",
+    x = "Years of Experience",
+    y = "Salary ($)",
+    colour = "Gender"
+  ) +
+  scale_colour_brewer(palette = "Dark2") +
+  theme_minimal(base_size = 14)
+```
+
+**• A stacked bar chart showing the proportion of Remote_Work_Status across different Departments.**
+
+```{r}
+ggplot(Sociodata_cleaned, aes(x = Department, fill = Remote_Work_Status)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = scales::percent) +
+  labs(
+    title = "Proportion of Remote_Work_Status Across Departments",
+    x = "Department",
+    y = "Percentage",
+    fill = "Remote_Work_Status"
+  ) +
+  theme_minimal()
+theme(plot.title = element_text(face = "bold", hjust =0.5))
+```
+
+**Categorical Data Analysis (Chi-Square Tests)**
+
+**Investigate the relationship between categorical variables using the Chi-square test of independence.**
+
+**• Test the independence of Gender and Department.**
+
+```{r}
+head(Sociodata_cleaned)
+```
+
+```{r}
+contingency_table = table(Sociodata_cleaned$Gender, Sociodata_cleaned$Department)
+print(contingency_table)
+
+chi_result = chisq.test(contingency_table)
+print(chi_result)
+
+any(chi_result$expected < 5)
+```
+
+**• Test the independence of Remote_Work_Status and Region.**
+
+```{r}
+contingency_table = table(Sociodata_cleaned$Remote_Work_Status, Sociodata_cleaned$Region)
+
+print(contingency_table)
+
+chi_result = chisq.test(contingency_table)
+print(chi_result)
+
+any(chi_result$expected < 5)
+```
+
+**• Check the expected frequencies assumption. If violated, apply Fisher’s Exact Test where applicable. Interpret the p-values and Cramer’s V (effect size).**
+
+**Interpretation**
+
+With the p-values at 0.5077 and 0.2022, which are greater than 0.05, indicating that there is no significant statistical relationship between the variables in question. Thus we fail to reject the null hypothesis.
+
+**Parametric Hypothesis Testing**
+
+**Conduct parametric tests to evaluate continuous outcomes across groups. Check assumptions (normality via Shapiro-Wilk, equal variance via Levene’s test) before proceeding.**
+
+```{r}
+install.packages("car")
+```
+
+```{r}
+library("car")
+```
+
+**• Independent T-test: Investigate if there is a statistically significant difference in mean Salary between Gender groups.**
+
+```{r}
+Sociodata_cleaned_filtered = subset(Sociodata_cleaned,Gender %in% c("Male", "Female"))
+```
+
+```{r}
+anova_res = aov(Salary ~ Gender, data = Sociodata_cleaned)
+summary(anova_res)
+```
+
+With the p-value \< 0.05, there is a significant statistical difference in mean salary betweeen gender groups.
+
+**• One-way ANOVA: Determine if mean Salary differs significantly across the five Departments. If significant, perform a post-hoc test (e.g., Tukey’s HSD).**
+
+```{r}
+anova_model = aov(Salary ~ Department, data = Sociodata_cleaned)
+summary(anova_model)
+```
+
+Mean salary statistically differs significantly across the five departments.
+
+**Non-Parametric Hypothesis Testing**
+
+**Conduct non-parametric tests for variables that violate parametric assumptions or are ordinal. • Wilcoxon Rank-Sum Test: Compare the median Job_Satisfaction_Score between Union_Member (Yes vs. No).**
+
+```{r}
+wilcox.test(Job_Satisfaction_Score ~ Union_Member, data = Sociodata_cleaned)
+```
+
+p-value, 0.143 \> 0.05, this indicates that the difference is not statistically significant hence the median Job satisfaction between union and non-union members is not significantly different.
+
+**• Kruskal-Wallis Test: Compare Salary distributions across Marital_Status groups.**
+
+```{r}
+kruskal.test(Salary ~ Marital_Status, data = Sociodata_cleaned )
+```
+
+p-value of 0.2785 indicates that salary distribution does not differ significantly across marital groups.
+
+**Simple Linear Regression (SLR)**
+
+**Build a Simple Linear Regression model to predict Salary using only Years_of_Experience.**
+
+```{r}
+Salary_model = lm(Salary ~ Years_of_Experience, data = Sociodata_cleaned)
+summary(Salary_model)
+```
+
+**• Fit the model and write down the regression equation.**
+
+Salary = 72296.900 + 869.774(Years_of_Experience)
+
+**• Interpret the intercept and the slope coefficient in the context of the business scenario.**
+
+The intercept indicates that an employee with no experience receives a base salary of 72296.900 while for every additional year the predicted salary increases by an average of 869.774
+
+**• Report the R2 value and the overall model p-value.**
+
+R\^2 value = 0.4751
+
+p-value = \< 2.2e-16
+
+**Multiple Linear Regression (MLR)**
+
+**Build a Multiple Linear Regression model to predict Salary using a combination of predictors: Years_of_Experience, Education_Level, Performance_Score, Gender, and Department.**
+
+```{r}
+Sociodata_cleaned$Gender <- as.factor(Sociodata_cleaned$Gender)
+Sociodata_cleaned$Department <- as.factor(Sociodata_cleaned$Department)
+Sociodata_cleaned$Education_Level <- as.factor(Sociodata_cleaned$Education_Level)
+```
+
+**• Fit the model and interpret the coefficients. Specifically, discuss the effect of Gender and Department while holding other variables constant.**
+
+```{r}
+model <- lm(Salary ~ Years_of_Experience +
+              Education_Level +
+              Performance_Score +
+              Gender +
+              Department,
+            data = Sociodata_cleaned)
+
+summary(model)
+```
+
+**Report the Adjusted R2 and discuss the model’s explanatory power.**
+
+Adjusted R\^2= 0.5149
+
+> The regression model demonstrates strong explanatory power, accounting for approximately **51.5% of the variation in employee salary**. This indicates that factors such as experience, education, performance, gender, and department meaningfully contribute to salary differences. The high F‑statistic and extremely low p‑value confirm that the model significantly improves salary prediction compared to a baseline model. Overall, the model provides a robust and interpretable framework for understanding salary determinants within the organization.
+
+**Regression Diagnostics and Model Refinement**
+
+**Critically evaluate the assumptions of your MLR model from Task 9.**
+
+```{r}
+res = residuals(model)
+```
+
+**• Normality of Residuals: Generate a Q-Q plot and a histogram of residuals.**
+
+```{r}
+hist(res,
+     breaks = 40,
+     col = "green",
+     main = "Histogram of Residuals",
+     xlab = "Residuals")
+```
+
+```{r}
+qqnorm(res,
+       main = "Q-Q Plot of Residuals")
+qqline(res, col = "red", lwd = 2)
+
+```
+
+**• Homoscedasticity: Plot Residuals vs. Fitted values. Hint: The data was generated with scaling variance. If you observe a funnel shape, address it by applying a log-transformation to the target variable (Salary) and refitting the model.**
+
+```{r}
+plot(model$fitted.values, residuals(model),
+     xlab = "Fitted Values",
+     ylab = "Residuals",
+     main = "Residuals vs Fitted Values",
+     pch = 19, col = "darkgray")
+abline(h = 0, col = "red", lwd = 2)
+
+```
+
+```{r}
+Sociodata_cleaned$LogSalary <- log(Sociodata_cleaned$Salary)
+```
+
+```{r}
+model_log <- lm(LogSalary ~ Years_of_Experience +
+                  Education_Level +
+                  Performance_Score +
+                  Gender +
+                  Department,
+                data = Sociodata_cleaned)
+
+summary(model_log)
+
+```
+
+```{r}
+plot(model_log$fitted.values, residuals(model_log),
+     xlab = "Fitted Values (Log Model)",
+     ylab = "Residuals",
+     main = "Residuals vs Fitted Values (After Log Transformation)",
+     pch = 19, col = "darkgray")
+abline(h = 0, col = "red", lwd = 2)
+```
+
+**• Multicollinearity: Calculate the Variance Inflation Factor (VIF) for all predictors. Remove or combine variables if VIF \> 5**
+
+```{r}
+installed.packages("car")
+library("car")
+```
+
+```{r}
+vif(model)
+```
+
+There is no multicollinearity.
